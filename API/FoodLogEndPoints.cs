@@ -79,6 +79,50 @@ public static class FoodLogEndpoints
 
             return Results.Ok();
         });
+
+        app.MapGet("/foodlogs/summary", async (CalDbContext DbContext) =>
+        {
+            var today = DateTime.UtcNow.Date;
+
+            var goal = await DbContext.DailyGoals
+                .FirstOrDefaultAsync(g => g.Date.Date == today);
+
+            if (goal == null)
+            {
+                return Results.NotFound();
+            }
+
+            var foodLogs = await DbContext.FoodLogs
+                .Include(fl => fl.FoodItem)
+                .Where(fl => fl.LogDate.Date == today)
+                .ToListAsync();
+
+            var totalKcal = foodLogs.Sum(fl => fl.PortionSize / 100 * fl.FoodItem.Kcal);
+            var totalProtein = foodLogs.Sum(fl => fl.PortionSize / 100 * fl.FoodItem.Protein);
+            var totalFat = foodLogs.Sum(fl => fl.PortionSize / 100 * fl.FoodItem.Fat);
+            var totalCarbs = foodLogs.Sum(fl => fl.PortionSize / 100 * fl.FoodItem.Carbs);
+            var totalFiber = foodLogs.Sum(fl => fl.PortionSize / 100 * fl.FoodItem.Fiber);
+
+            var summary = new FoodLogDailySummaryDto
+            {
+                TotalKcal = totalKcal,
+                KcalGoal = goal.KcalGoal,
+
+                TotalProtein = totalProtein,
+                ProteinGoal = goal.ProteinGoal,
+
+                TotalFat = totalFat,
+                FatGoal = goal.FatGoal,
+
+                TotalCarbs = totalCarbs,
+                CarbsGoal = goal.CarbsGoal,
+
+                TotalFiber = totalFiber,
+                FiberGoal = goal.FiberGoal
+            };
+
+            return Results.Ok(summary);
+        });
     }
 }
 

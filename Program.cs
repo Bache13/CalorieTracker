@@ -22,6 +22,7 @@ if (app.Environment.IsDevelopment())
 }
 app.MapFoodItemApi();
 app.MapFoodLogApi();
+app.MapDailyGoal();
 
 app.UseHttpsRedirection();
 

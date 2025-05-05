@@ -11,4 +11,5 @@ public class CalDbContext : DbContext
 
     public DbSet<FoodItem> FoodItems { get; set; }
     public DbSet<FoodLog> FoodLogs { get; set; }
+    public DbSet<DailyGoal> DailyGoals { get; set; }
 }
