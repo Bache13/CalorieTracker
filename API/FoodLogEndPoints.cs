@@ -6,12 +6,13 @@ public static class FoodLogEndpoints
 {
     public static void MapFoodLogApi(this WebApplication app)
     {
-        app.MapGet("/foodlogs", async (CalDbContext DbContext) =>
+        app.MapGet("/foodlogs", async (CalDbContext DbContext, int userId) =>
         {
 
             try
             {
                 var foodLogs = await DbContext.FoodLogs
+                    .Where (fl => fl.UserId == userId)
                     .Include(fl => fl.FoodItem)
                     .Select(fl => new FoodLogResposnseDto
                     {
@@ -35,6 +36,7 @@ public static class FoodLogEndpoints
         {
             var foodLogs = new FoodLog
             {
+                UserId = dto.UserId, // <---- ADDED THIS 
                 FoodItemId = dto.FoodItemId,
                 PortionSize = dto.PortionSize,
                 LogDate = dto.LogDate

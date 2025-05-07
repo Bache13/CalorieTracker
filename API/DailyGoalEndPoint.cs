@@ -5,7 +5,7 @@ public static class DailyGoalEndPoint
 {
     public static void MapDailyGoal(this WebApplication app)
     {
-        app.MapGet("/dailygoals/{date}", async (CalDbContext Dbcontext, DateTime date) =>
+        app.MapGet("/dailygoals/{date}", async (CalDbContext Dbcontext, DateTime date, int userId) =>
         {
             if (date.Kind == DateTimeKind.Unspecified)
             {
@@ -22,6 +22,7 @@ public static class DailyGoalEndPoint
 
             var dto = new DailyGoalDto
             {
+                UserId = dailyGoal.UserId,
                 Date = dailyGoal.Date,
                 KcalGoal = dailyGoal.KcalGoal,
                 ProteinGoal = dailyGoal.ProteinGoal,
@@ -48,6 +49,7 @@ public static class DailyGoalEndPoint
 
             var goal = new DailyGoal
             {
+                UserId = dto.UserId,
                 Date = today,
                 KcalGoal = dto.KcalGoal,
                 ProteinGoal = dto.ProteinGoal,
