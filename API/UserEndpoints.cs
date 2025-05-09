@@ -103,44 +103,28 @@ public static class UserEndpoints
                     CreatedAt = user.CreatedAt
                 }
             });
-
-            // var response = new UserResponseDto
-            // {
-            //     Id = user.Id,
-            //     FirstName = user.FirstName,
-            //     LastName = user.LastName,
-            //     Email = user.Email,
-            //     CreatedAt = user.CreatedAt
-            // };
-
-            // return Results.Ok(response);
         });
 
 
-        // Add IsAdmin flag when editing because it is not in when creating? 
-        // Or should I keep it seperate and make another put/post to handle this?
-        // app.MapPut("/users/{id}", async (CalDbContext DbContext) =>
-        // {
 
-        // });
-
-        app.MapDelete("/users/{id}", async (CalDbContext DbContext, int id) =>
+        app.MapDelete("/users/{id}", async (HttpContext http, CalDbContext DbContext, int id) =>
         {
-            var user = await DbContext.User.FindAsync(id);
-
-            if (user == null)
+            var userToDelete = await DbContext.User.FindAsync(id);
+            if (userToDelete == null)
             {
                 return Results.NotFound("User does not exist.");
             }
 
-            if (!user.IsAdmin)
+            var requesterId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (requesterId == id.ToString())
             {
-                return Results.Unauthorized();
+                return Results.BadRequest("You cannot delete yourself.");
             }
 
-            DbContext.Remove(user);
+            DbContext.Remove(userToDelete);
             await DbContext.SaveChangesAsync();
             return Results.Ok();
-        });
+        })
+        .RequireAuthorization("AdminOnly");
     }
 }
