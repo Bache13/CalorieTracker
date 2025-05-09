@@ -12,7 +12,7 @@ public static class FoodLogEndpoints
             try
             {
                 var foodLogs = await DbContext.FoodLogs
-                    .Where (fl => fl.UserId == userId)
+                    .Where(fl => fl.UserId == userId)
                     .Include(fl => fl.FoodItem)
                     .Select(fl => new FoodLogResposnseDto
                     {
@@ -30,7 +30,8 @@ public static class FoodLogEndpoints
                 Console.WriteLine($"Can not retrieve data {ex.Message}");
                 return Results.NotFound();
             }
-        });
+        })
+        .RequireAuthorization();
 
         app.MapPost("/foodlogs", async (CalDbContext DbContext, FoodLogCreateDto dto) =>
         {
@@ -82,6 +83,7 @@ public static class FoodLogEndpoints
             return Results.Ok();
         });
 
+        // Add Id
         app.MapGet("/foodlogs/summary", async (CalDbContext DbContext) =>
         {
             var today = DateTime.UtcNow.Date;

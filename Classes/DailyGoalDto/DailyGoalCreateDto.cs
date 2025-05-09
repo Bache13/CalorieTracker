@@ -6,5 +6,4 @@ public class DailyGoalCreateDto
     public float CarbsGoal { get; set; }
     public float FiberGoal { get; set; }
     public int UserId { get; set; }
-
 }
