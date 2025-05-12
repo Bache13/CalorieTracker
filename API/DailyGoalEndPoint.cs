@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using CaloryTracker.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,15 +6,19 @@ public static class DailyGoalEndPoint
 {
     public static void MapDailyGoal(this WebApplication app)
     {
-        app.MapGet("/dailygoals/{date}", async (CalDbContext Dbcontext, DateTime date, int userId) =>
+        app.MapGet("/dailygoals/today", async (CalDbContext Dbcontext, HttpContext context, DateTime? date) =>
         {
-            if (date.Kind == DateTimeKind.Unspecified)
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
+                return Results.Unauthorized();
             }
 
+            var targetDate = (date ?? DateTime.UtcNow).Date;
+
             var dailyGoal = await Dbcontext.DailyGoals
-                .FirstOrDefaultAsync(g => g.Date.Date == date.ToUniversalTime().Date);
+                .FirstOrDefaultAsync(g => g.Date.Date == targetDate && g.UserId == userId);
 
             if (dailyGoal == null)
             {
@@ -32,15 +37,22 @@ public static class DailyGoalEndPoint
             };
 
             return Results.Ok(dto);
+        })
+        .RequireAuthorization();
 
-        });
-
-        app.MapPost("/dailygoals", async (CalDbContext DbContext, DailyGoalCreateDto dto) =>
+        app.MapPost("/dailygoals", async (CalDbContext DbContext, DailyGoalCreateDto dto, HttpContext context) =>
         {
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Results.Unauthorized();
+            }
+
             var today = DateTime.UtcNow.Date;
 
             var existingGoal = await DbContext.DailyGoals
-                .FirstOrDefaultAsync(g => g.Date.Date == today);
+                .FirstOrDefaultAsync(g => g.Date.Date == today && g.UserId == userId);
 
             if (existingGoal != null)
             {
@@ -49,7 +61,7 @@ public static class DailyGoalEndPoint
 
             var goal = new DailyGoal
             {
-                UserId = dto.UserId,
+                UserId = userId,
                 Date = today,
                 KcalGoal = dto.KcalGoal,
                 ProteinGoal = dto.ProteinGoal,
@@ -62,12 +74,21 @@ public static class DailyGoalEndPoint
             await DbContext.SaveChangesAsync();
 
             return Results.Ok(goal);
-        });
+        })
+        .RequireAuthorization();
 
-        app.MapPut("/dailygoals/{date}/", async (CalDbContext DbContext, DateTime date, DailyGoalUpdateDto dto) =>
+        app.MapPut("/dailygoals/{date}/", async (CalDbContext DbContext, DateTime date, DailyGoalUpdateDto dto, HttpContext context) =>
         {
+
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Results.Unauthorized();
+            }
+
             var goal = await DbContext.DailyGoals
-                .FirstOrDefaultAsync(d => d.Date.Date == date.Date);
+                .FirstOrDefaultAsync(d => d.Date.Date == date.Date && d.UserId == userId);
 
             if (goal == null)
             {
@@ -83,23 +104,34 @@ public static class DailyGoalEndPoint
             await DbContext.SaveChangesAsync();
 
             return Results.Ok();
-        });
+        })
+        .RequireAuthorization();
 
-        app.MapDelete("/dailygoals/{date}/", async (CalDbContext DbContext, DateTime date) =>
+        app.MapDelete("/dailygoals/today/", async (CalDbContext DbContext, DateTime date, HttpContext context) =>
         {
+
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var today = DateTime.UtcNow.Date;
+
             var dailyGoal = await DbContext.DailyGoals
-                .FirstOrDefaultAsync(d => d.Date.Date == date.Date);
+                .FirstOrDefaultAsync(d => d.Date.Date == today && d.UserId == userId);
 
             if (dailyGoal == null)
             {
                 return Results.NotFound();
             }
 
-            DbContext.Remove(dailyGoal);
-
+            DbContext.DailyGoals.Remove(dailyGoal);
             await DbContext.SaveChangesAsync();
 
-            return Results.Ok();
-        });
+            return Results.Ok("Today's daily goal has been deleted.");
+        })
+        .RequireAuthorization();
     }
 }
