@@ -7,11 +7,16 @@ using System.Security.Claims;
 
 public static class UserEndpoints
 {
-    public static void MapUserEndpoints(this WebApplication app)
-    {
-        app.MapGet("/users/{id}", async (CalDbContext DbContext, int id) =>
+        app.MapGet("/users", async (CalDbContext DbContext, HttpContext context) =>
         {
-            var user = await DbContext.User.FindAsync(id);
+            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userIdClaim?.Value, out int userId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var user = await DbContext.User.FindAsync(userId);
 
             if (user == null)
             {
@@ -19,7 +24,8 @@ public static class UserEndpoints
             }
 
             return Results.Ok(user);
-        });
+        })
+        .RequireAuthorization();
 
         app.MapPost("/users/register/", async (CalDbContext DbContext, UserRegisterDto dto) =>
         {
