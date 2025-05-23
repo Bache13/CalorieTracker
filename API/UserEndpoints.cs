@@ -7,6 +7,8 @@ using System.Security.Claims;
 
 public static class UserEndpoints
 {
+    public static void MapUserEndpoints(this WebApplication app)
+    {
         app.MapGet("/users", async (CalDbContext DbContext, HttpContext context) =>
         {
             var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
